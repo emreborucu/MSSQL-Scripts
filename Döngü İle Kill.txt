@@ -1,0 +1,11 @@
+Declare @x Int =473, @y Int=0
+
+While 1=1
+Begin
+Set @y = (select blocking_session_id from sys.dm_exec_requests Where session_id=@x and blocking_session_id<>@x)
+DEclare @xx nVarchar(10)
+Set @xx = 'Kill ' +Convert(Varchar(5),@y)
+Exec sp_executesql @xx
+Print @xx
+waitfor delay '00:00:01'
+End

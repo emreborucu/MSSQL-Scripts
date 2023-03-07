@@ -1,0 +1,5 @@
+select * from [SunucuYonetim].[dbo].[tb_KullaniciTruncate_Log]
+select * from [SunucuYonetim].[dbo].[tb_KullaniciTruncateYetki]
+--insert into tb_KullaniciTruncateYetki values ('Iszekasi.dbo.tb_Tahmin_MgzSatisTahminStokKapasite','LCWAIKIKI\ZEYNEP.KUCUKCAVDAR')
+--insert into tb_KullaniciTruncateYetki values ('Iszekasi.dbo.tb_Tahmin_MgzSatisTahminStokKapasite_MYG','LCWAIKIKI\ZEYNEP.KUCUKCAVDAR')
+--grant execute on [SunucuYonetim].[dbo].[Sp_TruncateYap] to [LCWAIKIKI\ZEYNEP.KUCUKCAVDAR];

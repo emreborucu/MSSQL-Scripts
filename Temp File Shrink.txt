@@ -1,0 +1,7 @@
+USE [tempdb]
+GO
+DBCC SHRINKFILE (N'templog' , 500000)
+GO
+
+
+DBCC SQLPERF(LOGSPACE)

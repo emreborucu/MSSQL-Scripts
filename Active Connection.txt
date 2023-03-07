@@ -1,0 +1,92 @@
+SELECT DB_NAME(dbid) AS DBName,
+COUNT(dbid) AS NumberOfConnections,
+loginame
+FROM    sys.sysprocesses
+where loginame='ProductServiceUser'
+GROUP BY dbid, loginame
+ORDER BY DB_NAME(dbid)
+
+----Aktive connection ı bulmak için hangisine bakılmalı sorulacak
+
+-----------------
+SELECT *
+FROM sys.dm_os_performance_counters
+WHERE counter_name = 'User Connections';
+---Performance counterdan alınan değerle üstteki farklı çıkıyor sebebi nedir?
+----------
+
+
+DECLARE @SPWHO1 TABLE (DBName VARCHAR(1000) NULL, NoOfAvailableConnections VARCHAR(1000) NULL, LoginName VARCHAR(1000) NULL)
+INSERT INTO @SPWHO1 
+    SELECT db_name(dbid), count(dbid), loginame FROM sys.sysprocesses WHERE dbid > 0 GROUP BY dbid, loginame
+SELECT * FROM @SPWHO1 
+where LoginName='ProductServiceUser'
+--WHERE DBName = @dbName
+
+--Running connections
+DECLARE @SPWHO2 TABLE (SPID VARCHAR(1000), [Status] VARCHAR(1000) NULL, [Login] VARCHAR(1000) NULL, HostName VARCHAR(1000) NULL, BlkBy VARCHAR(1000) NULL, DBName VARCHAR(1000) NULL, Command VARCHAR(1000) NULL, CPUTime VARCHAR(1000) NULL, DiskIO VARCHAR(1000) NULL, LastBatch VARCHAR(1000) NULL, ProgramName VARCHAR(1000) NULL, SPID2 VARCHAR(1000) NULL, Request VARCHAR(1000) NULL)
+INSERT INTO @SPWHO2 
+    EXEC sp_who2 'Active'
+SELECT * FROM @SPWHO2 
+where Login='ProductServiceUser'
+--WHERE DBName = @dbName
+
+------------------------------
+
+
+USE master
+go
+SELECT
+     sdes.session_id
+    ,sdes.login_time
+    ,sdes.last_request_start_time
+    ,sdes.last_request_end_time
+    ,sdes.is_user_process
+    ,sdes.host_name
+    ,sdes.program_name
+    ,sdes.login_name
+    ,sdes.status
+
+    ,sdec.num_reads
+    ,sdec.num_writes
+    ,sdec.last_read
+    ,sdec.last_write
+    ,sdes.reads
+    ,sdes.logical_reads
+    ,sdes.writes
+
+    ,sdest.DatabaseName
+    ,sdest.ObjName
+    ,sdes.client_interface_name
+    ,sdes.nt_domain
+    ,sdes.nt_user_name
+    ,sdec.client_net_address
+    ,sdec.local_net_address
+    ,sdest.Query
+    ,KillCommand  = 'Kill '+ CAST(sdes.session_id  AS VARCHAR)
+FROM sys.dm_exec_sessions AS sdes
+
+INNER JOIN sys.dm_exec_connections AS sdec
+        ON sdec.session_id = sdes.session_id
+
+CROSS APPLY (
+
+    SELECT DB_NAME(dbid) AS DatabaseName
+        ,OBJECT_NAME(objectid) AS ObjName
+        ,COALESCE((
+            SELECT TEXT AS [processing-instruction(definition)]
+            FROM sys.dm_exec_sql_text(sdec.most_recent_sql_handle)
+            FOR XML PATH('')
+                ,TYPE
+            ), '') AS Query
+
+    FROM sys.dm_exec_sql_text(sdec.most_recent_sql_handle)
+
+) sdest
+WHERE 
+sdes.session_id <> @@SPID
+and 
+--sdes.login_name='ProductServiceUser' 
+sdes.login_name='ProductServiceUser'
+ -- AND sdest.DatabaseName ='yourdatabasename'
+ORDER BY sdes.last_request_start_time DESC
