@@ -1,0 +1,25 @@
+gwmi win32_volume|where-object {$_.filesystem -match “ntfs”}|ft name,capacity,freespace
+gwmi win32_volume|where-object {$_.filesystem -match “ntfs”}|ft name,@{Label="SizeGB";Expression={“{0:N2}” -f ($_.capacity / 1024/1024/1024)}},@{Label="FreeGB";Expression={“{0:N2}” -f ($_.freespace / 1024/1024/1024)}}
+
+##Powershell ISE ile uzaktan mount point disk analizi
+$TotalGB = @{Name="Capacity(GB)";expression={[math]::round(($_.Capacity/ 1073741824),2)}}
+$FreeGB = @{Name="FreeSpace(GB)";expression={[math]::round(($_.FreeSpace / 1073741824),2)}}
+$FreePerc = @{Name="Free(%)";expression={[math]::round(((($_.FreeSpace / 1073741824)/($_.Capacity / 1073741824)) * 100),0)}}
+$FullPerc = @{Name="Full(%)";expression={[math]::round((((($_.Capacity / 1073741824)-($_.FreeSpace / 1073741824))/
+
+($_.Capacity / 1073741824)) * 100),0)}} 
+
+function get-mountpoints {
+$volumes = Get-WmiObject -computer $server win32_volume 
+#| Where-object {$_.DriveLetter -eq $null}
+#| Where-object {$_.DriveLetter -eq $null}
+$volumes | Select SystemName, Caption, Label, $TotalGB, $FreeGB, $FreePerc, $FullPerc | Format-Table -AutoSize
+}
+
+# Server listesini içeren txt dosyasýnýn path'ini belirtiniz.
+$servers = "LCWWAREHOUSE"
+
+
+foreach ($server in $servers){
+get-mountpoints 
+} 

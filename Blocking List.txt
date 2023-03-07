@@ -1,0 +1,104 @@
+-- SYS.DM_EXEC_REQUESTS ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+SELECT TOP 20 wait_time, DB_NAME(t.dbid) AS DBName,
+OBJECT_NAME(t.objectid, t.dbid) AS OBJECTNAME,
+percent_complete,
+--CAST(((DATEDIFF(s,start_time,GetDate()))/3600) as varchar) + ' hour(s), '+ CAST((DATEDIFF(s,start_time,GetDate())%3600)/60 as varchar) + 'min, '+ CAST((DATEDIFF(s,start_time,GetDate())%60) as varchar) + ' sec' as running_time,CAST((estimated_completion_time/3600000) as varchar) + ' hour(s), '+ CAST((estimated_completion_time %3600000)/60000 as varchar) + 'min, '+ CAST((estimated_completion_time %60000)/1000 as varchar) + ' sec' as est_time_to_go,dateadd(second,estimated_completion_time/1000, getdate()) as est_completion_time,
+wait_resource,
+wait_time,
+--m.map_value AS WaitType,
+req.Last_Wait_Type,
+--case when m.map_value='UNKNOWN' or m.map_value = req.Last_Wait_Type then req.Last_Wait_Type else m.map_value end as WaitType,
+req.blocking_session_id,
+session_id,
+t.text AS SqlText,
+SUBSTRING(t.text, 1+req.statement_start_offset/2, 1+(CASE
+
+
+
+                                                               WHEN req.statement_end_offset = -1
+
+
+
+                                                               THEN LEN(CONVERT(NVARCHAR(MAX), t.text))*2
+
+
+
+                                                               ELSE req.statement_end_offset
+
+
+
+                                                           END-req.statement_start_offset)/2) AS SqlStatement,
+p.query_plan,
+p2.query_plan,
+TRY_CONVERT(XML, p2.query_plan) AS QueryPlan,*
+
+
+
+     --select *
+
+
+
+FROM sys.dm_exec_requests(NOLOCK) req
+
+
+
+--LEFT JOIN sys.dm_xe_map_values(NOLOCK) m ON CONVERT(BINARY(2), m.map_key) = req.wait_type AND m.name = 'wait_types'
+
+
+
+    OUTER APPLY sys.dm_exec_sql_text(sql_handle) t
+
+
+
+    OUTER APPLY sys.dm_exec_query_plan(plan_handle) p
+
+
+
+    OUTER APPLY sys.dm_exec_text_query_plan(plan_handle, statement_start_offset, statement_end_offset) p2
+
+
+
+WHERE Status <> 'background'
+
+
+
+     AND command <> 'TASK MANAGER'
+
+
+
+     AND req.session_id <> @@SPID
+
+
+
+--AND req.session_id in (129)
+
+
+
+--AND req.session_id=2735
+
+
+
+--AND (req.blocking_session_id<>0 /*or req.session_id in (666)*/)
+
+
+
+--AND (req.blocking_session_id = 2735)
+
+
+
+--AND req.session_id in (select spid from sys.sysprocesses where program_name like '%Microsoft Dynamics AX%')
+
+
+
+--AND req.database_id=DB_ID('Planlama')
+
+
+
+--AND DB_NAME(t.dbid) = 'Tanim'
+
+
+
+ORDER BY req.wait_time desc;
