@@ -1,0 +1,95 @@
+
+
+WITH MissingClusteredIndexesCTE AS
+(
+  SELECT DISTINCT ss.name AS SchemaName,
+                  o.name as TableName, 
+				 
+				  (SELECT SUM(p.rows) 
+                     FROM sys.partitions p
+                    WHERE p.index_id = i.index_id
+                      AND i.object_id = p.object_id) as number_of_rows,
+
+					(SELECT CAST(ROUND(((SUM(a.total_pages) * 8) / 1024.00), 2) AS NUMERIC(36, 2)) AS TotalSpaceMB
+                     FROM sys.partitions p
+					 INNER JOIN   sys.allocation_units a ON p.partition_id = a.container_id
+                    WHERE p.index_id = i.index_id
+                      AND i.object_id = p.object_id) as TotalSpaceMB,
+
+
+				  '[' + ss.name + '].[' + o.name + ']' as SchemaAndTable
+    FROM sys.indexes i
+   INNER JOIN sys.objects o ON i.object_id = o.object_id
+   INNER JOIN sys.schemas ss ON o.[schema_id] = ss.[schema_id] AND ss.name <> 'SYS'  
+   WHERE OBJECTPROPERTY(o.object_id, 'IsUserTable') = 1
+     AND OBJECTPROPERTY(o.object_id, 'TableHasClustIndex') = 0	 
+)
+SELECT TOP 200 
+@@Servername ServerName,
+DB_NAME() as DatabaseName,
+       SchemaName, 
+	   TableName, 
+	   max(number_of_rows) as number_of_rows, 
+	   sum(TotalSpaceMB) as TotalSpaceMB,
+	   SchemaAndTable
+  FROM MissingClusteredIndexesCTE
+ WHERE number_of_rows > 10
+ GROUP BY SchemaName, TableName, SchemaAndTable
+ ORDER BY number_of_rows DESC;  
+
+
+--------------------
+
+
+If  (Select OBJECT_ID('tempdb..#HeapTable')) Is Not NULL
+		drop table #HeapTable
+CREATE TABLE #HeapTable (ServerName NVARCHAR(100), DatabaseName NVARCHAR(100),SchemaName NVARCHAR(50), TableName NVARCHAR(100), number_of_rows INT, TotalSpaceMB NUMERIC(36, 2), SchemaAndTable NVARCHAR(250))
+
+EXECUTE sp_MSForEachDB 
+        'USE ?; 
+
+IF DB_NAME() NOT IN (''master'',''model'',''msdb'',''tempdb'' ,''SunucuYonetim'')
+BEGIN
+		WITH MissingClusteredIndexesCTE AS
+		(
+		  SELECT DISTINCT ss.name AS SchemaName,
+						  o.name as TableName, 
+				 
+						  (SELECT SUM(p.rows) 
+							 FROM sys.partitions p
+							WHERE p.index_id = i.index_id
+							  AND i.object_id = p.object_id) as number_of_rows,
+
+							(SELECT CAST(ROUND(((SUM(a.total_pages) * 8) / 1024.00), 2) AS NUMERIC(36, 2)) AS TotalSpaceMB
+							 FROM sys.partitions p
+							 INNER JOIN   sys.allocation_units a ON p.partition_id = a.container_id
+							WHERE p.index_id = i.index_id
+							  AND i.object_id = p.object_id) as TotalSpaceMB,
+
+
+						  ''['' + ss.name + ''].['' + o.name + '']'' as SchemaAndTable
+			FROM sys.indexes i
+		   INNER JOIN sys.objects o ON i.object_id = o.object_id
+		   INNER JOIN sys.schemas ss ON o.[schema_id] = ss.[schema_id] AND ss.name <> ''SYS'' 
+		   WHERE OBJECTPROPERTY(o.object_id, ''IsUserTable'') = 1
+			 AND OBJECTPROPERTY(o.object_id, ''TableHasClustIndex'') = 0	 
+		)
+
+		INSERT INTO #HeapTable 
+		SELECT TOP 200 
+		@@Servername ServerName,
+		DB_NAME() as DatabaseName,
+			   SchemaName, 
+			   TableName, 
+			   max(number_of_rows) as number_of_rows, 
+			   sum(TotalSpaceMB) as TotalSpaceMB,
+			   SchemaAndTable
+		  FROM MissingClusteredIndexesCTE
+		 WHERE number_of_rows > 10
+		 GROUP BY SchemaName, TableName, SchemaAndTable
+		 ORDER BY number_of_rows DESC;  
+END
+       '
+
+SELECT * FROM #HeapTable
+drop table #HeapTable

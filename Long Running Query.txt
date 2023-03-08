@@ -1,0 +1,245 @@
+If  (Select OBJECT_ID('tempdb..#Queries')) Is Not NULL
+		drop table #Queries
+
+   Go
+
+--select * from #Queries
+
+Create Table #Queries (
+ServerName	nvarchar(128)
+,RowNo tinyint
+,ReportName	varchar(10)
+,sql_handle	varbinary(64)
+,statement_start_offset	int	
+,statement_end_offset	int	
+,plan_handle	varbinary(64)	
+,creation_time	datetime	
+,last_execution_time	datetime	
+,execution_count	bigint
+,total_worker_time	bigint
+,last_worker_time	bigint
+,total_logical_reads	bigint
+,last_logical_reads	bigint
+,total_elapsed_time	bigint
+,last_elapsed_time	bigint
+--,query_hash	binary	(8)
+--,query_plan_hash	binary(8)
+,total_rows	bigint
+,last_rows	bigint
+--,statement_sql_handle	varbinary(64)
+--,statement_context_id	bigint
+,total_grant_kb	bigint	
+,last_grant_kb	bigint	
+,total_used_grant_kb	bigint	
+,last_used_grant_kb	bigint	
+,total_ideal_grant_kb	bigint	
+,last_ideal_grant_kb	bigint	
+)
+
+GO
+
+Insert Into #Queries(
+ServerName,	ReportName,RowNo,	sql_handle,	statement_start_offset,	statement_end_offset,	plan_handle,	creation_time,	last_execution_time,	execution_count,	total_worker_time,	last_worker_time,	total_logical_reads,	last_logical_reads,	total_elapsed_time,	last_elapsed_time,	total_rows,	last_rows,	total_grant_kb,	last_grant_kb,	total_used_grant_kb,	last_used_grant_kb,	total_ideal_grant_kb,	last_ideal_grant_kb)
+select top 20
+@@Servername ServerName,
+'TotalCPU' ReportName,
+ROW_NUMBER() OVER(ORDER BY EQS.total_worker_time  desc) RowNo,
+sql_handle,
+statement_start_offset,
+statement_end_offset,
+--plan_generation_num,
+plan_handle,
+creation_time,
+last_execution_time,
+execution_count,
+total_worker_time,
+last_worker_time,
+total_logical_reads,
+last_logical_reads,
+total_elapsed_time,
+last_elapsed_time,
+--query_hash,
+--query_plan_hash,
+total_rows,
+last_rows,
+--statement_sql_handle,
+--statement_context_id,
+total_grant_kb,
+last_grant_kb,
+total_used_grant_kb,
+last_used_grant_kb,
+total_ideal_grant_kb,
+last_ideal_grant_kb 
+  FROM sys.dm_exec_query_stats EQS (nolock)
+    where last_execution_time>'2022-09-01 00:00:0.000'
+	and execution_count>100
+  order by total_worker_time desc
+
+GO
+
+Insert Into #Queries(
+ServerName,	ReportName,RowNo,	sql_handle,	statement_start_offset,	statement_end_offset,	plan_handle,	creation_time,	last_execution_time,	execution_count,	total_worker_time,	last_worker_time,	total_logical_reads,	last_logical_reads,	total_elapsed_time,	last_elapsed_time,	total_rows,	last_rows,	total_grant_kb,	last_grant_kb,	total_used_grant_kb,	last_used_grant_kb,	total_ideal_grant_kb,	last_ideal_grant_kb)
+
+  select top 20
+@@Servername ServerName,
+'AvgCPU' ReportName,
+ROW_NUMBER() OVER(ORDER BY EQS.total_worker_time/EQS.execution_count  desc) RowNo,
+sql_handle,
+statement_start_offset,
+statement_end_offset,
+--plan_generation_num,
+plan_handle,
+creation_time,
+last_execution_time,
+execution_count,
+total_worker_time,
+last_worker_time,
+total_logical_reads,
+last_logical_reads,
+total_elapsed_time,
+last_elapsed_time,
+--query_hash,
+--query_plan_hash,
+total_rows,
+last_rows,
+--statement_sql_handle,
+--statement_context_id,
+total_grant_kb,
+last_grant_kb,
+total_used_grant_kb,
+last_used_grant_kb,
+total_ideal_grant_kb,
+last_ideal_grant_kb 
+  FROM sys.dm_exec_query_stats EQS (nolock)
+  where last_execution_time>'2022-09-01 00:00:0.000'
+	and execution_count>100
+  order by total_worker_time/execution_count desc
+
+
+
+GO
+
+Insert Into #Queries(
+ServerName,	ReportName,RowNo,	sql_handle,	statement_start_offset,	statement_end_offset,	plan_handle,	creation_time,	last_execution_time,	execution_count,	total_worker_time,	last_worker_time,	total_logical_reads,	last_logical_reads,	total_elapsed_time,	last_elapsed_time,	total_rows,	last_rows,	total_grant_kb,	last_grant_kb,	total_used_grant_kb,	last_used_grant_kb,	total_ideal_grant_kb,	last_ideal_grant_kb)
+  select top 20
+@@Servername ServerName,
+'TotalIO' ReportName,
+ROW_NUMBER() OVER(ORDER BY EQS.total_logical_reads  desc) RowNo,
+sql_handle,
+statement_start_offset,
+statement_end_offset,
+--plan_generation_num,
+plan_handle,
+creation_time,
+last_execution_time,
+execution_count,
+total_worker_time,
+last_worker_time,
+total_logical_reads,
+last_logical_reads,
+total_elapsed_time,
+last_elapsed_time,
+--query_hash,
+--query_plan_hash,
+total_rows,
+last_rows,
+--statement_sql_handle,
+--statement_context_id,
+total_grant_kb,
+last_grant_kb,
+total_used_grant_kb,
+last_used_grant_kb,
+total_ideal_grant_kb,
+last_ideal_grant_kb 
+  FROM sys.dm_exec_query_stats EQS (nolock)
+    where last_execution_time>'2022-09-01 00:00:0.000'
+	and execution_count>100
+  order by total_logical_reads desc
+
+
+
+  GO
+
+Insert Into #Queries(
+ServerName,	ReportName,RowNo,	sql_handle,	statement_start_offset,	statement_end_offset,	plan_handle,	creation_time,	last_execution_time,	execution_count,	total_worker_time,	last_worker_time,	total_logical_reads,	last_logical_reads,	total_elapsed_time,	last_elapsed_time,	total_rows,	last_rows,	total_grant_kb,	last_grant_kb,	total_used_grant_kb,	last_used_grant_kb,	total_ideal_grant_kb,	last_ideal_grant_kb)
+
+  select top 20
+@@Servername ServerName,
+'AVGIO' ReportName,
+ROW_NUMBER() OVER(ORDER BY EQS.total_logical_reads/EQS.execution_count  desc) RowNo,
+sql_handle,
+statement_start_offset,
+statement_end_offset,
+--plan_generation_num,
+plan_handle,
+creation_time,
+last_execution_time,
+execution_count,
+total_worker_time,
+last_worker_time,
+total_logical_reads,
+last_logical_reads,
+total_elapsed_time,
+last_elapsed_time,
+--query_hash,
+--query_plan_hash,
+total_rows,
+last_rows,
+--statement_sql_handle,
+--statement_context_id,
+total_grant_kb,
+last_grant_kb,
+total_used_grant_kb,
+last_used_grant_kb,
+total_ideal_grant_kb,
+last_ideal_grant_kb 
+  FROM sys.dm_exec_query_stats EQS (nolock)
+    where last_execution_time>'2022-09-01 00:00:0.000'
+	and execution_count>100
+  order by total_logical_reads/execution_count desc
+
+
+
+
+
+
+
+  select 
+  q.ServerName,
+  q.RowNo,	
+  q.ReportName,	
+  q.creation_time,	
+  q.last_execution_time,	
+  q.execution_count,	
+  q.total_worker_time,
+  q.total_worker_time/q.execution_count As AVG_worker_time ,	
+  q.last_worker_time,	
+  q.total_logical_reads,	
+  q.last_logical_reads/q.execution_count As AVG_logical_reads ,	
+  q.last_logical_reads,	
+  q.total_elapsed_time,	
+  q.last_elapsed_time,	
+  q.total_rows,	
+  q.last_rows,	
+  q.total_grant_kb,	
+  q.last_grant_kb,	
+  q.total_used_grant_kb,	
+  q.last_used_grant_kb,	
+  q.total_ideal_grant_kb,	
+  q.last_ideal_grant_kb,
+  DB.database_id,	
+  DB.name as Dbname,	
+  EST.objectid,	
+  
+  ISNULL(Object_name(ISNULL(EST.objectid,0), ISNULL(DB.database_id,0) ),'') As ObjectName,
+  -- EST.text As SQLtext,	
+   SUBSTRING(EST.text,1 + q.statement_start_offset / 2 ,(CASE WHEN q.statement_end_offset = -1 THEN LEN(convert(nvarchar(max), EST.text)) * 2 ELSE q.statement_end_offset END - q.statement_start_offset) / 2 ) AS SqlStatement,
+  --est.text,
+  EQP.query_plan
+  from #Queries q (nolock)
+  CROSS APPLY sys.dm_exec_sql_text(q.sql_handle) AS EST
+  CROSS APPLY sys.dm_exec_query_plan(q.plan_handle) AS EQP
+  LEFT JOIN sys.databases AS DB ON EST.dbid = DB.database_id
+where ISNULL(DB.name,'')  NOT IN ('SunucuYonetim','')
+
+

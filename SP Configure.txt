@@ -1,0 +1,25 @@
+sp_configure 'show advanced options',1
+reconfigure
+go
+sp_configure 'max degree of parallelism',1
+reconfigure
+go
+--sp_configure 'max server memory (MB)',26624
+--reconfigure
+--(memory kontrol edilerek işletim sistemine 4Gb vb. bir memory bırakılarak kalanı SQL için set edilir.)
+
+sp_configure 'optimize for ad hoc workloads',1
+reconfigure
+go
+sp_configure 'remote admin connections',1
+reconfigure
+go
+sp_configure 'blocked process threshold (s)',5
+reconfigure
+go
+sp_configure 'backup compression default',1
+reconfigure
+go
+sp_configure 'Ad Hoc Distributed Queries',1
+reconfigure
+go

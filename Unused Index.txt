@@ -1,0 +1,158 @@
+
+
+
+If  (Select OBJECT_ID('tempdb..#UnusedIndex')) Is Not NULL
+		drop table #UnusedIndex
+CREATE TABLE #UnusedIndex (ServerName NVARCHAR(100), DatabaseName NVARCHAR(100),SchemaName NVARCHAR(50), TableName NVARCHAR(100), number_of_rows INT, TotalSpaceMB NUMERIC(36, 2), SchemaAndTable NVARCHAR(250))
+
+EXECUTE sp_MSForEachDB 
+        'USE ?; 
+
+
+-- Find Unused Index Script
+-- Original Author: Pinal Dave (C) 2011
+SELECT 
+top 100
+@@Servername ServerName,
+DB_NAME() as DatabaseName,
+s.name AS SchemaName
+,o.name AS TableName
+, i.name AS IndexName
+, dm_ius.user_seeks AS UserSeek
+, dm_ius.user_scans AS UserScans
+, dm_ius.user_lookups AS UserLookups
+, dm_ius.user_updates AS UserUpdates
+, p.TableRows
+,CAST(partition_stats.used_page_count * 8 / 1024.00 AS Decimal(10,3))AS IndexSizeMB  
+, dm_ius.last_user_scan
+, dm_ius.last_user_seek
+, dm_ius.last_user_update
+, ''DROP INDEX '' + QUOTENAME(i.name)
++ '' ON '' + QUOTENAME(s.name) + ''.'' + QUOTENAME(OBJECT_NAME(dm_ius.OBJECT_ID)) AS ''drop statement'',
+index_create_script.Statement AS ''Create Index Statement''
+FROM sys.dm_db_index_usage_stats dm_ius
+INNER JOIN sys.indexes i ON i.index_id = dm_ius.index_id AND dm_ius.OBJECT_ID = i.OBJECT_ID
+INNER JOIN sys.dm_db_partition_stats partition_stats  ON partition_stats.[object_id] = i.[object_id]   AND partition_stats.index_id = i.index_id  AND i.type_desc <> ''HEAP'' 
+INNER JOIN sys.objects o ON dm_ius.OBJECT_ID = o.OBJECT_ID
+INNER JOIN sys.schemas s ON o.schema_id = s.schema_id
+INNER JOIN (SELECT SUM(p.rows) TableRows, p.index_id, p.OBJECT_ID
+			FROM sys.partitions p GROUP BY p.index_id, p.OBJECT_ID) p ON p.index_id = dm_ius.index_id AND dm_ius.OBJECT_ID = p.OBJECT_ID
+INNER JOIN (
+		SELECT ''CREATE INDEX ''+IndexName+'' ON '' + TableName + '' (''+KeyCols+'' ) ''+CASE WHEN IncludeCols IS NOT NULL THEN '' INCLUDE (''+IncludeCols+'' )'' ELSE '' END AS Statement, IndexName
+			FROM (
+				SELECT
+				''['' + Sch.name + ''].['' + Tab.[name] + '']'' AS TableName,
+				Ind.Name AS IndexName, 
+						SUBSTRING(( SELECT '', '' + AC.name
+						FROM sys.[tables] AS T
+						INNER JOIN sys.[indexes] I ON T.[object_id] = I.[object_id]
+						INNER JOIN sys.[index_columns] IC ON I.[object_id] = IC.[object_id]
+						AND I.[index_id] = IC.[index_id]
+						INNER JOIN sys.[all_columns] AC ON T.[object_id] = AC.[object_id]
+						AND IC.[column_id] = AC.[column_id]
+						WHERE Ind.[object_id] = I.[object_id]
+						AND Ind.index_id = I.index_id
+						AND IC.is_included_column = 0
+						ORDER BY IC.key_ordinal 
+						FOR
+						XML PATH('') ), 2, 8000) AS KeyCols,
+						SUBSTRING(( SELECT ', ' + AC.name
+						FROM sys.[tables] AS T
+						INNER JOIN sys.[indexes] I ON T.[object_id] = I.[object_id]
+						INNER JOIN sys.[index_columns] IC ON I.[object_id] = IC.[object_id]
+						AND I.[index_id] = IC.[index_id]
+						INNER JOIN sys.[all_columns] AC ON T.[object_id] = AC.[object_id]
+						AND IC.[column_id] = AC.[column_id]
+						WHERE Ind.[object_id] = I.[object_id]
+						AND Ind.index_id = I.index_id
+						AND IC.is_included_column = 1
+						ORDER BY IC.key_ordinal 
+						FOR
+						XML PATH('') ), 2, 8000) AS IncludeCols
+				FROM sys.[indexes] Ind
+				INNER JOIN sys.[tables] AS Tab ON Tab.[object_id] = Ind.[object_id]
+				INNER JOIN sys.[schemas] AS Sch ON Sch.[schema_id] = Tab.[schema_id]
+				) index_create_script) index_create_script ON i.name = index_create_script.Indexname
+WHERE OBJECTPROPERTY(dm_ius.OBJECT_ID,''IsUserTable'') = 1
+AND dm_ius.database_id = DB_ID()
+AND i.type_desc = ''nonclustered''
+AND i.is_primary_key = 0
+AND i.is_unique_constraint = 0
+AND i.is_unique = 0
+ORDER BY last_user_seek, last_user_scan, IndexSizeMB DESC
+
+  '
+
+SELECT * FROM #UnusedIndex
+drop table #UnusedIndex
+
+
+
+------------------
+
+
+
+
+
+
+
+
+
+If  (Select OBJECT_ID('tempdb..#UnusedIndex')) Is Not NULL
+		drop table #UnusedIndex
+CREATE TABLE #UnusedIndex (
+ServerName NVARCHAR(100), DatabaseName NVARCHAR(100),SchemaName NVARCHAR(50), TableName NVARCHAR(250), IndexName NVARCHAR(250), 
+UserSeek INT,
+UserScans INT,
+UserLookups INT,
+UserUpdates INT,
+TableRows BIGINT,
+IndexSizeMB Decimal(10,3),
+last_user_scan DATETIME,
+last_user_seek DATETIME,
+last_user_update DATETIME)
+
+EXECUTE sp_MSForEachDB 
+        'USE ?; 
+
+IF DB_NAME() NOT IN (''master'',''model'',''msdb'',''tempdb'' ,''SunucuYonetim'')
+BEGIN
+
+		INSERT INTO #UnusedIndex
+		SELECT 
+		top 100
+		@@Servername ServerName,
+		DB_NAME() as DatabaseName,
+		s.name AS SchemaName
+		,o.name AS TableName
+		, i.name AS IndexName
+		, dm_ius.user_seeks AS UserSeek
+		, dm_ius.user_scans AS UserScans
+		, dm_ius.user_lookups AS UserLookups
+		, dm_ius.user_updates AS UserUpdates
+		, p.TableRows
+		,CAST(partition_stats.used_page_count * 8 / 1024.00 AS Decimal(10,3))AS IndexSizeMB  
+		, dm_ius.last_user_scan
+		, dm_ius.last_user_seek
+		, dm_ius.last_user_update
+	
+		FROM sys.dm_db_index_usage_stats dm_ius
+		INNER JOIN sys.indexes i ON i.index_id = dm_ius.index_id AND dm_ius.OBJECT_ID = i.OBJECT_ID
+		INNER JOIN sys.dm_db_partition_stats partition_stats  ON partition_stats.[object_id] = i.[object_id]   AND partition_stats.index_id = i.index_id  AND i.type_desc <> ''HEAP'' 
+		INNER JOIN sys.objects o ON dm_ius.OBJECT_ID = o.OBJECT_ID
+		INNER JOIN sys.schemas s ON o.schema_id = s.schema_id
+		INNER JOIN (SELECT SUM(p.rows) TableRows, p.index_id, p.OBJECT_ID
+					FROM sys.partitions p GROUP BY p.index_id, p.OBJECT_ID) p ON p.index_id = dm_ius.index_id AND dm_ius.OBJECT_ID = p.OBJECT_ID
+		
+		WHERE OBJECTPROPERTY(dm_ius.OBJECT_ID,''IsUserTable'') = 1
+		AND dm_ius.database_id = DB_ID()
+		AND i.type_desc = ''nonclustered''
+		AND i.is_primary_key = 0
+		AND i.is_unique_constraint = 0
+		AND i.is_unique = 0
+		ORDER BY last_user_seek, last_user_scan, IndexSizeMB DESC
+END
+  '
+
+SELECT * FROM #UnusedIndex
+drop table #UnusedIndex

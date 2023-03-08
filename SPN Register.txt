@@ -1,0 +1,15 @@
+
+
+
+SetSpn -a MSQLSvc/GROWDZ.LCWAIKIKI.LOCAL LCWAIKIKI\SQL.GROWDZ
+SetSpn -a MSQLSvc/GROWDZ LCWAIKIKI\SQL.GROWDZ
+SetSpn -a MSQLSvc/GROWDZ.LCWAIKIKI.LOCAL:1433 LCWAIKIKI\SQL.GROWDZ
+
+
+üstteki kod çalistirildiginda uzaktan baglanilamadi. Asagidaki kod çalistirildiktan sonra baglanildi.
+
+SetSPN -d "MSSQLSvc/GROWDZ.lcwaikiki.local" "lcwaikiki\GROWDZ$"
+SetSPN -s "MSSQLSvc/GROWDZ.lcwaikiki.local" "LCWAIKIKI\SQL.GROWDZ"
+
+SetSPN -d "MSSQLSvc/GROWDZ.lcwaikiki.local:1433" "lcwaikiki\GROWDZ$"
+SetSPN -s "MSSQLSvc/GROWDZ.lcwaikiki.local:1433" "LCWAIKIKI\SQL.GROWDZ"
